@@ -1,0 +1,29 @@
+services:
+  web:
+    build: .
+    command: uvicorn flatbot.web.app:app --host 0.0.0.0 --port 8000 --workers 1
+    volumes:
+      - flatbot_data:/data
+    env_file: .env
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  bot:
+    build: .
+    command: python -m flatbot.bot.main
+    volumes:
+      - flatbot_data:/data
+    env_file: .env
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  flatbot_data:
