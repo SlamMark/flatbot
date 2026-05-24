@@ -15,7 +15,7 @@ from flatbot.integrations.openproperties.query_builder import (
 from flatbot.models import Filter
 
 _HOST = "openproperties.p.rapidapi.com"
-_BASE_URL = f"https://{_HOST}"
+_BASE_URL = f"https://{_HOST}/public/v2"
 _RETRY_STATUSES = {429, 500, 502, 503, 504}
 _MAX_RETRIES = 3
 _FIXTURE_PATH = (
@@ -33,9 +33,10 @@ class OpenPropertiesClient:
 
     def _get(self, path: str, params: dict[str, str | int | float]) -> dict[str, Any]:
         delay = 1.0
-        with httpx.Client(base_url=_BASE_URL, headers=self._headers, timeout=15.0) as client:
+        url = f"{_BASE_URL}{path}"
+        with httpx.Client(headers=self._headers, timeout=15.0) as client:
             for attempt in range(_MAX_RETRIES):
-                resp = client.get(path, params=params)
+                resp = client.get(url, params=params)
                 if resp.status_code in _RETRY_STATUSES and attempt < _MAX_RETRIES - 1:
                     time.sleep(delay)
                     delay *= 2
