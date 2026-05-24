@@ -114,6 +114,13 @@ class MatchRepo:
             self.db.execute(select(Match).where(Match.notified_at.is_(None))).scalars()
         )
 
+    def list_recent(self, limit: int = 10) -> list[Match]:
+        return list(
+            self.db.execute(
+                select(Match).order_by(Match.matched_at.desc()).limit(limit)
+            ).scalars()
+        )
+
 
 class ScanRunRepo:
     def __init__(self, db: Session) -> None:
