@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     web_secret_key: str = "change-me-in-production"
     web_password: str = ""  # if empty, portal auth is disabled
     scan_interval_minutes: int = 30
+    scan_lookback_hours: int = 72
     web_api_url: str = "http://web:8000"
     log_level: str = "INFO"
     mock_api: bool = False

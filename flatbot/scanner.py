@@ -5,6 +5,7 @@ from typing import Protocol
 from sqlalchemy.orm import Session
 
 from flatbot.alerts import AlertSender
+from flatbot.config import settings
 from flatbot.integrations.openproperties.dto import ListingDTO
 from flatbot.matching import evaluate
 from flatbot.models import Filter, Listing, Match, ScanRun
@@ -68,7 +69,7 @@ def run_scan(
     try:
         for f in filter_repo.list_active():
             try:
-                dtos = client.fetch_recent(f)
+                dtos = client.fetch_recent(f, hours=settings.scan_lookback_hours)
                 total_fetched += len(dtos)
 
                 new_matches: list[tuple[Match, ListingDTO]] = []
