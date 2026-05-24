@@ -6,13 +6,17 @@ services:
       - flatbot_data:/data
     env_file: .env
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"   # bind localhost only — put nginx in front for HTTPS
+    networks:
+      - flatbot_net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
 
   bot:
     build: .
@@ -20,10 +24,16 @@ services:
     volumes:
       - flatbot_data:/data
     env_file: .env
+    networks:
+      - flatbot_net
     depends_on:
       web:
         condition: service_healthy
     restart: unless-stopped
+
+networks:
+  flatbot_net:
+    driver: bridge
 
 volumes:
   flatbot_data:

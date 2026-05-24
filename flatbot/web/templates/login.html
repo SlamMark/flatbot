@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %} — Acceso{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold text-center">🔐 FlatBot — Acceso</div>
+      <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger py-2 small mb-3">Contraseña incorrecta.</div>
+        {% endif %}
+        <form method="post" action="/login?next={{ next_url }}">
+          <div class="mb-3">
+            <label class="form-label">Contraseña</label>
+            <input type="password" name="password" class="form-control" autofocus required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Entrar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

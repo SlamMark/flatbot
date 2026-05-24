@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     telegram_token: str = ""
     telegram_chat_id: str = ""
     web_secret_key: str = "change-me-in-production"
+    web_password: str = ""  # if empty, portal auth is disabled
     scan_interval_minutes: int = 30
     web_api_url: str = "http://web:8000"
     log_level: str = "INFO"

@@ -7,10 +7,12 @@ from fastapi import FastAPI
 from flatbot.config import settings
 from flatbot.logging_conf import configure_logging
 from flatbot.scheduler import start_scheduler, stop_scheduler
+from flatbot.web.auth import AuthMiddleware
 from flatbot.web.routes.api import router as api_router
 from flatbot.web.routes.config import router as config_router
 from flatbot.web.routes.dashboard import router as dashboard_router
 from flatbot.web.routes.filters import router as filters_router
+from flatbot.web.routes.login import router as login_router
 
 configure_logging(settings.log_level)
 
@@ -24,6 +26,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title="FlatBot", version="0.1.0", lifespan=lifespan)
 
+app.add_middleware(AuthMiddleware)
+
+app.include_router(login_router)
 app.include_router(api_router)
 app.include_router(dashboard_router)
 app.include_router(filters_router)

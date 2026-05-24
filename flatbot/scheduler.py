@@ -21,7 +21,7 @@ def start_scheduler() -> None:
     from flatbot.integrations.openproperties.client import make_client
     from flatbot.scanner import run_scan
 
-    def _job() -> None:
+    def _scan_job() -> None:
         db = SessionLocal()
         try:
             run_scan(db, make_client(), make_sender())
@@ -30,16 +30,28 @@ def start_scheduler() -> None:
         finally:
             db.close()
 
+    def _backup_job() -> None:
+        from flatbot.services.backup import run_backup
+        run_backup(settings.database_url)
+
     _scheduler = BackgroundScheduler(timezone="UTC")
     _scheduler.add_job(
-        _job,
+        _scan_job,
         trigger="interval",
         minutes=settings.scan_interval_minutes,
         id="scan",
         replace_existing=True,
     )
+    _scheduler.add_job(
+        _backup_job,
+        trigger="cron",
+        hour=3,
+        minute=0,
+        id="backup",
+        replace_existing=True,
+    )
     _scheduler.start()
-    logger.info("Scheduler started — scan every %d min", settings.scan_interval_minutes)
+    logger.info("Scheduler started — scan every %d min, backup daily at 03:00 UTC", settings.scan_interval_minutes)
 
 
 def stop_scheduler() -> None:
