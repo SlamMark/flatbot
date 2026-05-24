@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %} — Configuración{% endblock %}
+{% block content %}
+<h2 class="mb-4">Configuración</h2>
+<div class="card shadow-sm">
+  <div class="card-body">
+    <table class="table table-sm mb-0">
+      <tbody>
+        {% for key, val in cfg.items() %}
+        <tr>
+          <th class="text-muted w-25">{{ key }}</th>
+          <td><code>{{ val }}</code></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<p class="text-muted mt-3 small">
+  Edita el archivo <code>.env</code> para cambiar los valores. Reinicia el servicio para que surtan efecto.
+</p>
+{% endblock %}

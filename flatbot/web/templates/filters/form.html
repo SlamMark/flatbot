@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %} — {{ "Editar filtro" if flt else "Nuevo filtro" }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">{{ "Editar: " + flt.name if flt else "Nuevo filtro" }}</h2>
+  <a href="/filters" class="btn btn-outline-secondary">← Volver</a>
+</div>
+
+<form method="post" action="{{ '/filters/' + flt.id|string if flt else '/filters' }}">
+  {# ── Información básica ── #}
+  <div class="card mb-3 shadow-sm">
+    <div class="card-header fw-semibold">Información básica</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-5">
+          <label class="form-label">Nombre <span class="text-danger">*</span></label>
+          <input type="text" name="name" class="form-control" required
+                 value="{{ flt.name if flt else '' }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Tipo <span class="text-danger">*</span></label>
+          <select name="kind" class="form-select" required>
+            <option value="rent" {{ 'selected' if not flt or flt.kind == 'rent' }}>Alquiler</option>
+            <option value="sale" {{ 'selected' if flt and flt.kind == 'sale' }}>Venta</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Tipo propiedad</label>
+          <input type="text" name="property_type" class="form-control" placeholder="flat, house…"
+                 value="{{ flt.property_type if flt and flt.property_type else '' }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Fuente</label>
+          <input type="text" name="source" class="form-control" placeholder="idealista…"
+                 value="{{ flt.source if flt and flt.source else '' }}">
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+          <div class="form-check mb-2">
+            <input type="checkbox" name="is_active" id="is_active" class="form-check-input"
+                   {{ 'checked' if not flt or flt.is_active }}>
+            <label class="form-check-label" for="is_active">Activo</label>
+          </div>
+        </div>
+      </div>
+      <div class="row g-3 mt-1">
+        <div class="col-md-3">
+          <label class="form-label">Latitud <span class="text-danger">*</span></label>
+          <input type="number" name="lat" step="any" class="form-control" required
+                 value="{{ flt.lat if flt else '' }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Longitud <span class="text-danger">*</span></label>
+          <input type="number" name="lng" step="any" class="form-control" required
+                 value="{{ flt.lng if flt else '' }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Radio (km) <span class="text-danger">*</span></label>
+          <input type="number" name="radius_km" step="0.1" min="0.1" class="form-control" required
+                 value="{{ flt.radius_km if flt else '2.0' }}">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Precio y tamaño ── #}
+  <div class="card mb-3 shadow-sm">
+    <div class="card-header fw-semibold">Precio y tamaño</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Precio mín (€)</label>
+          <input type="number" name="min_price" class="form-control" min="0"
+                 value="{{ flt.min_price if flt and flt.min_price is not none else '' }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Precio máx (€)</label>
+          <input type="number" name="max_price" class="form-control" min="0"
+                 value="{{ flt.max_price if flt and flt.max_price is not none else '' }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Hab. mín</label>
+          <input type="number" name="min_rooms" class="form-control" min="0"
+                 value="{{ flt.min_rooms if flt and flt.min_rooms is not none else '' }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Hab. máx</label>
+          <input type="number" name="max_rooms" class="form-control" min="0"
+                 value="{{ flt.max_rooms if flt and flt.max_rooms is not none else '' }}">
+        </div>
+        <div class="col-md-1">
+          <label class="form-label">m² mín</label>
+          <input type="number" name="min_sqm" class="form-control" min="0"
+                 value="{{ flt.min_sqm if flt and flt.min_sqm is not none else '' }}">
+        </div>
+        <div class="col-md-1">
+          <label class="form-label">m² máx</label>
+          <input type="number" name="max_sqm" class="form-control" min="0"
+                 value="{{ flt.max_sqm if flt and flt.max_sqm is not none else '' }}">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Flags de tres estados ── #}
+  <div class="card mb-3 shadow-sm">
+    <div class="card-header fw-semibold">Flags</div>
+    <div class="card-body">
+      <div class="row g-3">
+        {% for field, label in [('temporal','Temporal'),('ocupada','Ocupada'),
+                                 ('alquiler_regulado','Alq. regulado'),('nuda_propiedad','Nuda propiedad')] %}
+        <div class="col-md-3">
+          <label class="form-label">{{ label }}</label>
+          <select name="{{ field }}" class="form-select">
+            {% set val = flt|attr(field) if flt else 'any' %}
+            <option value="any" {{ 'selected' if val == 'any' }}>Cualquiera</option>
+            <option value="only" {{ 'selected' if val == 'only' }}>Solo</option>
+            <option value="exclude" {{ 'selected' if val == 'exclude' }}>Excluir</option>
+          </select>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Servicios / amenidades ── #}
+  <div class="card mb-3 shadow-sm">
+    <div class="card-header fw-semibold">Servicios</div>
+    <div class="card-body">
+      <div class="row g-3">
+        {% for field, label in [('elevator','Ascensor'),('furnished','Amueblado'),
+                                 ('garage','Garaje'),('terrace','Terraza'),
+                                 ('balcony','Balcón'),('pets_allowed','Mascotas')] %}
+        <div class="col-md-2">
+          <label class="form-label">{{ label }}</label>
+          <select name="{{ field }}" class="form-select">
+            {% set val = flt|attr(field) if flt else 'any' %}
+            <option value="any" {{ 'selected' if val == 'any' }}>Cualquiera</option>
+            <option value="yes" {{ 'selected' if val == 'yes' }}>Sí</option>
+            <option value="no" {{ 'selected' if val == 'no' }}>No</option>
+          </select>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 align-items-center">
+    <button type="submit" class="btn btn-primary">Guardar</button>
+    <a href="/filters" class="btn btn-outline-secondary">Cancelar</a>
+    {% if flt %}
+    <button type="button" class="btn btn-outline-success ms-auto"
+            hx-post="/filters/{{ flt.id }}/test"
+            hx-target="#test-result"
+            hx-swap="innerHTML">
+      Probar filtro
+    </button>
+    {% endif %}
+  </div>
+</form>
+
+{% if flt %}
+<div id="test-result" class="mt-4"></div>
+{% endif %}
+{% endblock %}

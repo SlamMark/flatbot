@@ -1,0 +1,35 @@
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold">
+    Resultado: {{ matched|length }}/{{ total }} coinciden
+  </div>
+  <div class="card-body p-0">
+    {% if matched %}
+    <table class="table table-sm mb-0">
+      <thead class="table-success"><tr><th>✔ Match</th><th>Precio</th><th>Dirección</th><th>URL</th></tr></thead>
+      <tbody>
+        {% for dto, result in matched %}
+        <tr>
+          <td class="small">{{ dto.property_type }} · {{ dto.bedrooms }}hab · {{ dto.square_meters }}m²</td>
+          <td class="small">{{ dto.price }}€</td>
+          <td class="small">{{ dto.address }}</td>
+          <td class="small"><a href="{{ dto.url }}" target="_blank">ver</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    {% if skipped %}
+    <details class="p-2">
+      <summary class="text-muted small">{{ skipped|length }} no coinciden</summary>
+      <ul class="list-unstyled mt-2 small text-muted">
+        {% for dto, result in skipped %}
+        <li>{{ dto.address }} — {{ result.reasons | join(', ') }}</li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+    {% if total == 0 %}
+    <p class="text-muted p-3 mb-0">No se obtuvieron listings de la API.</p>
+    {% endif %}
+  </div>
+</div>

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %} — Filtros{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Filtros</h2>
+  <a href="/filters/new" class="btn btn-success">+ Nuevo filtro</a>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-hover bg-white rounded shadow-sm align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>Nombre</th><th>Tipo</th><th>Ubicación</th>
+        <th>Precio</th><th>Hab.</th><th>m²</th>
+        <th>Estado</th><th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="filter-list">
+      {% for flt in filters %}
+        {% include "filters/row.html" %}
+      {% else %}
+      <tr><td colspan="8" class="text-center text-muted py-4">No hay filtros. <a href="/filters/new">Crear uno</a>.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+<tr id="filter-row-{{ flt.id }}">
+  <td class="fw-semibold">{{ flt.name }}</td>
+  <td><span class="badge bg-secondary">{{ flt.kind }}</span></td>
+  <td class="small text-muted">{{ "%.4f"|format(flt.lat) }}, {{ "%.4f"|format(flt.lng) }} ({{ flt.radius_km }}km)</td>
+  <td class="small">
+    {% if flt.min_price or flt.max_price %}
+      {{ flt.min_price or "–" }}–{{ flt.max_price or "–" }}€
+    {% else %}<span class="text-muted">cualquier</span>{% endif %}
+  </td>
+  <td class="small">
+    {% if flt.min_rooms or flt.max_rooms %}
+      {{ flt.min_rooms or "–" }}–{{ flt.max_rooms or "–" }}
+    {% else %}<span class="text-muted">any</span>{% endif %}
+  </td>
+  <td class="small">
+    {% if flt.min_sqm or flt.max_sqm %}
+      {{ flt.min_sqm or "–" }}–{{ flt.max_sqm or "–" }}
+    {% else %}<span class="text-muted">any</span>{% endif %}
+  </td>
+  <td>
+    <span class="badge {% if flt.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+      {{ "activo" if flt.is_active else "inactivo" }}
+    </span>
+  </td>
+  <td class="text-nowrap">
+    <a href="/filters/{{ flt.id }}/edit" class="btn btn-sm btn-outline-primary">Editar</a>
+    <button class="btn btn-sm btn-outline-secondary"
+            hx-post="/filters/{{ flt.id }}/toggle"
+            hx-target="#filter-row-{{ flt.id }}"
+            hx-swap="outerHTML">
+      {{ "Desactivar" if flt.is_active else "Activar" }}
+    </button>
+    <form method="post" action="/filters/{{ flt.id }}/duplicate" style="display:inline">
+      <button class="btn btn-sm btn-outline-info" type="submit">Duplicar</button>
+    </form>
+    <button class="btn btn-sm btn-outline-danger"
+            hx-delete="/filters/{{ flt.id }}"
+            hx-confirm="¿Eliminar el filtro «{{ flt.name }}»?"
+            hx-target="#filter-row-{{ flt.id }}"
+            hx-swap="outerHTML">
+      Eliminar
+    </button>
+  </td>
+</tr>
