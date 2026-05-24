@@ -4,7 +4,8 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 
 from flatbot.config import settings
-from flatbot.db import Base  # noqa: F401 — side-effect: registers all models
+from flatbot.db import Base
+from flatbot import models as _models  # noqa: F401 — registers all ORM classes with Base.metadata
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
