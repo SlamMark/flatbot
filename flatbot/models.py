@@ -33,9 +33,7 @@ class Filter(Base):
     max_sqm: Mapped[int | None]
 
     # Three-state: any | only | exclude
-    temporal: Mapped[str] = mapped_column(String(10), default="any")
     ocupada: Mapped[str] = mapped_column(String(10), default="any")
-    alquiler_regulado: Mapped[str] = mapped_column(String(10), default="any")
     nuda_propiedad: Mapped[str] = mapped_column(String(10), default="any")
 
     # Amenity: any | yes | no

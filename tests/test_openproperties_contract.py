@@ -49,9 +49,7 @@ def minimal_filter() -> Filter:
     f.max_rooms = None
     f.min_sqm = None
     f.max_sqm = None
-    f.temporal = "any"
     f.ocupada = "any"
-    f.alquiler_regulado = "any"
     f.nuda_propiedad = "any"
     f.elevator = "any"
     f.furnished = "any"
@@ -143,16 +141,16 @@ class TestBuildListingsParams:
 
     def test_any_filters_omitted(self, minimal_filter: Filter) -> None:
         params = build_listings_params(minimal_filter)
-        for key in ("temporal", "ocupada", "alquilerRegulado", "nudaPropiedad",
+        for key in ("ocupada", "nudaPropiedad",
                     "elevator", "furnished", "garage", "terrace", "balcony", "petsAllowed"):
             assert key not in params
 
     def test_non_any_filter_included(self, minimal_filter: Filter) -> None:
         minimal_filter.elevator = "only"
-        minimal_filter.temporal = "exclude"
+        minimal_filter.ocupada = "exclude"
         params = build_listings_params(minimal_filter)
         assert params["elevator"] == "only"
-        assert params["temporal"] == "exclude"
+        assert params["ocupada"] == "exclude"
 
     def test_pagination_defaults(self, minimal_filter: Filter) -> None:
         params = build_listings_params(minimal_filter)

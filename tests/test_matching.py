@@ -64,9 +64,7 @@ def _filter(**overrides) -> Filter:
     f.max_rooms = None
     f.min_sqm = None
     f.max_sqm = None
-    f.temporal = "any"
     f.ocupada = "any"
-    f.alquiler_regulado = "any"
     f.nuda_propiedad = "any"
     f.elevator = "any"
     f.furnished = "any"
@@ -146,18 +144,23 @@ class TestPropertyTypeFilter:
 
 class TestThreeStateFilters:
     def test_any_always_passes(self) -> None:
-        assert evaluate(_listing(flag_temporal=True), _filter(temporal="any")).matched
+        assert evaluate(_listing(flag_ocupada=True), _filter(ocupada="any")).matched
 
-    def test_only_requires_true(self) -> None:
-        assert evaluate(_listing(flag_temporal=True), _filter(temporal="only")).matched
-        assert not evaluate(_listing(flag_temporal=False), _filter(temporal="only")).matched
-
-    def test_exclude_requires_false(self) -> None:
-        assert evaluate(_listing(flag_temporal=False), _filter(temporal="exclude")).matched
-        assert not evaluate(_listing(flag_temporal=True), _filter(temporal="exclude")).matched
+    def test_ocupada_only(self) -> None:
+        assert evaluate(_listing(flag_ocupada=True), _filter(ocupada="only")).matched
+        assert not evaluate(_listing(flag_ocupada=False), _filter(ocupada="only")).matched
 
     def test_ocupada_exclude(self) -> None:
+        assert evaluate(_listing(flag_ocupada=False), _filter(ocupada="exclude")).matched
         assert not evaluate(_listing(flag_ocupada=True), _filter(ocupada="exclude")).matched
+
+    def test_nuda_propiedad_only(self) -> None:
+        assert evaluate(_listing(flag_bare_ownership=True), _filter(nuda_propiedad="only")).matched
+        assert not evaluate(_listing(flag_bare_ownership=False), _filter(nuda_propiedad="only")).matched
+
+    def test_nuda_propiedad_exclude(self) -> None:
+        assert evaluate(_listing(flag_bare_ownership=False), _filter(nuda_propiedad="exclude")).matched
+        assert not evaluate(_listing(flag_bare_ownership=True), _filter(nuda_propiedad="exclude")).matched
 
 
 class TestAmenityFilters:

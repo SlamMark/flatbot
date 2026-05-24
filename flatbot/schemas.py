@@ -22,9 +22,7 @@ class FilterCreate(BaseModel):
     max_rooms: int | None = None
     min_sqm: int | None = None
     max_sqm: int | None = None
-    temporal: ThreeState = "any"
     ocupada: ThreeState = "any"
-    alquiler_regulado: ThreeState = "any"
     nuda_propiedad: ThreeState = "any"
     elevator: AmenityFilter = "any"
     furnished: AmenityFilter = "any"
@@ -49,9 +47,7 @@ class FilterUpdate(BaseModel):
     max_rooms: int | None = None
     min_sqm: int | None = None
     max_sqm: int | None = None
-    temporal: ThreeState | None = None
     ocupada: ThreeState | None = None
-    alquiler_regulado: ThreeState | None = None
     nuda_propiedad: ThreeState | None = None
     elevator: AmenityFilter | None = None
     furnished: AmenityFilter | None = None

@@ -1,9 +1,7 @@
 from flatbot.models import Filter
 
 _THREE_STATE = {
-    "temporal": "temporal",
     "ocupada": "ocupada",
-    "alquiler_regulado": "alquilerRegulado",
     "nuda_propiedad": "nudaPropiedad",
 }
 

@@ -56,9 +56,7 @@ async def _parse_filter_form(request: Request) -> FilterCreate:
         max_rooms=_int_or_none(g("max_rooms") or None),
         min_sqm=_int_or_none(g("min_sqm") or None),
         max_sqm=_int_or_none(g("max_sqm") or None),
-        temporal=g("temporal", "any"),  # type: ignore[arg-type]
         ocupada=g("ocupada", "any"),  # type: ignore[arg-type]
-        alquiler_regulado=g("alquiler_regulado", "any"),  # type: ignore[arg-type]
         nuda_propiedad=g("nuda_propiedad", "any"),  # type: ignore[arg-type]
         elevator=g("elevator", "any"),  # type: ignore[arg-type]
         furnished=g("furnished", "any"),  # type: ignore[arg-type]

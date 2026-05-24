@@ -92,9 +92,7 @@ def evaluate(listing: ListingDTO, f: Filter) -> MatchResult:
 
     # Three-state flags
     for flag_attr, listing_val, label in [
-        ("temporal", listing.flag_temporal, "temporal"),
         ("ocupada", listing.flag_ocupada, "ocupada"),
-        ("alquiler_regulado", listing.flag_alquiler_regulado, "alquiler_regulado"),
         ("nuda_propiedad", listing.flag_bare_ownership, "nuda_propiedad"),
     ]:
         fval = getattr(f, flag_attr, "any")

@@ -43,14 +43,25 @@
         </div>
       </div>
       <div class="row g-3 mt-1">
+        <div class="col-md-8">
+          <label class="form-label">Buscar ubicación</label>
+          <div class="input-group">
+            <input type="text" id="geocode-query" class="form-control"
+                   placeholder="Eixample, Barcelona · Gràcia · C/ Provença 123…">
+            <button type="button" class="btn btn-outline-secondary" onclick="geocode()">Buscar</button>
+          </div>
+          <div id="geocode-status" class="form-text text-muted"></div>
+        </div>
+      </div>
+      <div class="row g-3 mt-1">
         <div class="col-md-3">
           <label class="form-label">Latitud <span class="text-danger">*</span></label>
-          <input type="number" name="lat" step="any" class="form-control" required
+          <input type="number" name="lat" id="lat" step="any" class="form-control" required
                  value="{{ flt.lat if flt else '' }}">
         </div>
         <div class="col-md-3">
           <label class="form-label">Longitud <span class="text-danger">*</span></label>
-          <input type="number" name="lng" step="any" class="form-control" required
+          <input type="number" name="lng" id="lng" step="any" class="form-control" required
                  value="{{ flt.lng if flt else '' }}">
         </div>
         <div class="col-md-2">
@@ -106,8 +117,7 @@
     <div class="card-header fw-semibold">Flags</div>
     <div class="card-body">
       <div class="row g-3">
-        {% for field, label in [('temporal','Temporal'),('ocupada','Ocupada'),
-                                 ('alquiler_regulado','Alq. regulado'),('nuda_propiedad','Nuda propiedad')] %}
+        {% for field, label in [('ocupada','Ocupada'),('nuda_propiedad','Nuda propiedad')] %}
         <div class="col-md-3">
           <label class="form-label">{{ label }}</label>
           <select name="{{ field }}" class="form-select">
@@ -161,4 +171,29 @@
 {% if flt %}
 <div id="test-result" class="mt-4"></div>
 {% endif %}
+
+<script>
+async function geocode() {
+  const q = document.getElementById('geocode-query').value.trim();
+  if (!q) return;
+  const status = document.getElementById('geocode-status');
+  status.textContent = 'Buscando…';
+  try {
+    const r = await fetch(
+      'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) + '&format=json&limit=1&countrycodes=es',
+      { headers: { 'Accept-Language': 'es' } }
+    );
+    const data = await r.json();
+    if (!data.length) { status.textContent = 'No encontrado. Prueba con más detalle.'; return; }
+    document.getElementById('lat').value = parseFloat(data[0].lat).toFixed(6);
+    document.getElementById('lng').value = parseFloat(data[0].lon).toFixed(6);
+    status.textContent = '✓ ' + data[0].display_name;
+  } catch (_) {
+    status.textContent = 'Error de red al contactar Nominatim.';
+  }
+}
+document.getElementById('geocode-query').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); geocode(); }
+});
+</script>
 {% endblock %}
