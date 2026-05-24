@@ -1,0 +1,97 @@
+{
+  "data": [
+    {
+      "id": "2061b7ea-dfcb-42ea-b8f0-903ef3dc3ecd",
+      "propertyId": "bb64fc0c-45bd-4bc2-863b-e3d292a671a3",
+      "source": "idealista",
+      "externalId": "111488699",
+      "url": "https://www.idealista.com/inmueble/111488699/",
+      "kind": "rent",
+      "price": 2300,
+      "pricePerSqm": 19.2,
+      "propertyType": "flat",
+      "condition": "good",
+      "address": "Calle de Reus, 3, Sant Gervasi - La Bonanova, Sarrià-Sant Gervasi",
+      "coordinates": {
+        "lat": 41.4057535,
+        "lng": 2.1353254
+      },
+      "squareMeters": 120,
+      "bedrooms": 4,
+      "bathrooms": 2,
+      "floorNumber": 1,
+      "amenities": [
+        "elevator",
+        "exterior"
+      ],
+      "isAgency": false,
+      "publisherName": null,
+      "photosAmount": 13,
+      "imageUrls": [
+        "https://img4.idealista.com/s/v1/2rv6QcEy-cuQdXUAdXd3m13Gd1k6LQgld1rIiX73iZCyyEgHqGnBZsgy4s5om8jizmbkm8F3tQZ3ziV39wt3Bgj3PgYLCAj398j1m6jL?Expires=1779651278&Signature=MEUCIQCmxWJkYq~XE~NbRoWNAF9WJr-AO1x0h6pZRxFmupCbewIgadm7mCgz0CdtOU5pnSr2-LwZBuHJWitmM6N1yMbWT-0_&Key-Pair-Id=K20EOYVFELHOX5",
+        "https://img4.idealista.com/s/v1/2rv6QcEy-cuQdXUAdXd3m13Gd1k6LQgld1rIiX73iZCyyEgHqGnBZsgy4s5om8jizmbkm8F3Hgh3mwZ39_d3Bgj3PgYLCAj3CMj1m6jL?Expires=1779651278&Signature=MEYCIQCjZcdqDc2UnYlKyMWx3fAyea-urOc08OoO38HjINmG7wIhAMCi0FoEorHz645knwIrXqKuKiPOstpr-0gRPEc~PKwa&Key-Pair-Id=K20EOYVFELHOX5"
+      ],
+      "publishedAt": "2026-05-17T00:41:05.000Z",
+      "hoursAgo": 166,
+      "lastScrapedAt": "2026-05-17T00:41:48.322Z",
+      "flags": {
+        "isTemporal": false,
+        "isOkupada": false,
+        "isAlquilerRegulado": false,
+        "isBareOwnership": false
+      },
+      "llmSummary": "Piso · 4 hab · 120m² · 2300€/mes (19€/m²) · Sant Gervasi - La Bonanova, Sarrià-Sant Gervasi · 1ª planta con ascensor · exterior · publicado hace 6d · Idealista · particular · 13 fotos"
+    },
+    {
+      "id": "c64428b8-1363-4c56-bcde-c8fdfebc55f4",
+      "propertyId": "02465a53-9191-493e-878e-403af0b6dc63",
+      "source": "idealista",
+      "externalId": "111488751",
+      "url": "https://www.idealista.com/inmueble/111488751/",
+      "kind": "rent",
+      "price": 1700,
+      "pricePerSqm": 14.3,
+      "propertyType": "flat",
+      "condition": "good",
+      "address": "Avenida Retor Emilio Bayarri, Los Monasterios-Alfinach",
+      "coordinates": {
+        "lat": 39.6323919,
+        "lng": -0.3432202
+      },
+      "squareMeters": 119,
+      "bedrooms": 3,
+      "bathrooms": 2,
+      "floorNumber": null,
+      "amenities": [
+        "elevator",
+        "pool",
+        "exterior"
+      ],
+      "isAgency": true,
+      "publisherName": "SOMON INMOBILIARIA",
+      "photosAmount": 21,
+      "imageUrls": [
+        "https://img4.idealista.com/s/v1/2rv6QcEy-cuQdXUAdXd3m13Gd1k6LQgld1rIiX73iZCyyEgHqGnBZsgy4s5om8jizmbkm8F3gJt3CAh3Bgt3Bgj3gIAlCz6jo8j1m6jL?Expires=1779603008&Signature=MEYCIQDOQx9PQTnpr8WWH-IQMWNd9if2eorieg1s9T3NXPGFAgIhALHVizFwl5be80-tYNRzfNrCH2hMnZvzidVTkUaV5pgA&Key-Pair-Id=K20EOYVFELHOX5",
+        "https://img4.idealista.com/s/v1/2rv6QcEy-cuQdXUAdXd3m13Gd1k6LQgld1rIiX73iZCyyEgHqGnBZsgy4s5om8jizmbkm8F3Hh53gJt3Hj53Bgj3gIAlCz6jC8j1m6jL?Expires=1779603008&Signature=MEYCIQDRvotbaz1YjsldXnNFvSzMqeRft1d9dg~BNCK5Z0ZaHgIhAOojQzggPbm42hxwTaLd8ex0SsuLbGwOtJecAiYGposk&Key-Pair-Id=K20EOYVFELHOX5"
+      ],
+      "publishedAt": "2026-05-17T04:32:53.000Z",
+      "hoursAgo": 162,
+      "lastScrapedAt": "2026-05-17T04:34:31.324Z",
+      "flags": {
+        "isTemporal": false,
+        "isOkupada": false,
+        "isAlquilerRegulado": false,
+        "isBareOwnership": false
+      },
+      "llmSummary": "Piso · 3 hab · 119m² · 1700€/mes (14€/m²) · Avenida Retor Emilio Bayarri, Los Monasterios-Alfinach · con ascensor · piscina, exterior · publicado hace 6d · Idealista · agencia · 21 fotos"
+    }
+  ],
+  "meta": {
+    "total": 3278,
+    "page": 1,
+    "pageSize": 20,
+    "hasMore": true,
+    "dataAvailableSince": "2026-02-01",
+    "freshness": "Data updated continuously. Most recent listing in this page: 9480 minute(s) ago."
+  }
+}
