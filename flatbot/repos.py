@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from flatbot.models import Filter, Listing, Match, ScanRun
+from flatbot.models import AlertCarousel, Filter, Listing, Match, ScanRun
 from flatbot.schemas import FilterCreate, FilterUpdate
 
 
@@ -171,3 +171,31 @@ class ScanRunRepo:
         return self.db.execute(
             select(ScanRun).order_by(ScanRun.started_at.desc()).limit(1)
         ).scalar_one_or_none()
+
+
+class AlertCarouselRepo:
+    def __init__(self, db: Session) -> None:
+        self.db = db
+
+    def create(
+        self, chat_id: str, message_id: int, filter_id: int, match_ids: list[int]
+    ) -> AlertCarousel:
+        c = AlertCarousel(
+            chat_id=chat_id,
+            message_id=message_id,
+            filter_id=filter_id,
+            match_ids=match_ids,
+        )
+        self.db.add(c)
+        self.db.commit()
+        self.db.refresh(c)
+        return c
+
+    def get(self, carousel_id: int) -> AlertCarousel | None:
+        return self.db.get(AlertCarousel, carousel_id)
+
+    def get_match_at(self, carousel_id: int, idx: int) -> Match | None:
+        c = self.get(carousel_id)
+        if c is None or idx < 0 or idx >= len(c.match_ids):
+            return None
+        return self.db.get(Match, c.match_ids[idx])

@@ -1,12 +1,13 @@
 """F7 — Bot service entry point. Runs a PTB polling application."""
 import logging
 
-from telegram.ext import ApplicationBuilder, CommandHandler
+from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler
 from telegram.ext import filters as ext_filters
 
 from flatbot.bot.handlers import (
     handle_activar,
     handle_buscar,
+    handle_carousel_nav,
     handle_estado,
     handle_filtros,
     handle_pausar,
@@ -51,8 +52,10 @@ def main() -> None:
     ]:
         app.add_handler(CommandHandler(cmd, handler, filters=chat_filter))
 
+    app.add_handler(CallbackQueryHandler(handle_carousel_nav, pattern=r"^n:"))
+
     logger.info("Bot polling started")
-    app.run_polling(allowed_updates=["message"])
+    app.run_polling(allowed_updates=["message", "callback_query"])
 
 
 if __name__ == "__main__":

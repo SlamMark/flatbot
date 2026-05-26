@@ -48,3 +48,9 @@ class BotApiClient:
     async def get_recent_matches(self, limit: int = 5) -> list[dict[str, Any]]:
         result: list[dict[str, Any]] = await self._get("/api/matches/recent", limit=limit)
         return result
+
+    async def get_carousel_listing(self, carousel_id: int, idx: int) -> dict[str, Any]:
+        result: dict[str, Any] = await self._get(
+            f"/api/carousels/{carousel_id}/listings/{idx}"
+        )
+        return result

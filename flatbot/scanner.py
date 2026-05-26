@@ -4,12 +4,23 @@ from typing import Protocol
 
 from sqlalchemy.orm import Session
 
-from flatbot.alerts import AlertSender
+from flatbot.alerts import (
+    AlertSender,
+    build_carousel_keyboard,
+    format_card,
+    format_carousel_card,
+)
 from flatbot.config import settings
 from flatbot.integrations.openproperties.dto import ListingDTO
 from flatbot.matching import evaluate
 from flatbot.models import Filter, Listing, Match, ScanRun
-from flatbot.repos import FilterRepo, ListingRepo, MatchRepo, ScanRunRepo
+from flatbot.repos import (
+    AlertCarouselRepo,
+    FilterRepo,
+    ListingRepo,
+    MatchRepo,
+    ScanRunRepo,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +96,54 @@ def _listing_to_dto(listing: Listing) -> ListingDTO:
     )
 
 
+def _deliver(
+    db: Session,
+    sender: AlertSender,
+    f: Filter,
+    to_alert: list[tuple[Match, ListingDTO]],
+    match_repo: MatchRepo,
+    carousel_repo: AlertCarouselRepo,
+) -> int:
+    """Send pending alerts for one filter. Single match → plain card; ≥2 → carousel."""
+    if not to_alert:
+        return 0
+
+    if len(to_alert) == 1:
+        match, dto = to_alert[0]
+        if sender.send(format_card(dto)):
+            match_repo.mark_notified(match.id)
+            return 1
+        return 0
+
+    # Carousel path: persist row first to know the carousel_id for callback_data.
+    match_ids = [m.id for m, _ in to_alert]
+    total = len(to_alert)
+    first_dto = to_alert[0][1]
+
+    # Create with placeholder message_id=0; updated after the actual send.
+    carousel = carousel_repo.create(
+        chat_id=sender.chat_id,
+        message_id=0,
+        filter_id=f.id,
+        match_ids=match_ids,
+    )
+
+    text = format_carousel_card(first_dto, 0, total, f.name)
+    keyboard = build_carousel_keyboard(carousel.id, 0, total)
+    message_id = sender.send_with_keyboard(text, keyboard)
+    if message_id is None:
+        # Send failed — leave matches pending and drop the half-built carousel.
+        db.delete(carousel)
+        db.commit()
+        return 0
+
+    carousel.message_id = message_id
+    db.commit()
+    for match, _ in to_alert:
+        match_repo.mark_notified(match.id)
+    return total
+
+
 def run_scan(
     db: Session,
     client: ListingClient,
@@ -95,6 +154,7 @@ def run_scan(
     filter_repo = FilterRepo(db)
     listing_repo = ListingRepo(db)
     match_repo = MatchRepo(db)
+    carousel_repo = AlertCarouselRepo(db)
 
     run = scan_repo.start()
     total_fetched = total_new = total_matches = total_sent = 0
@@ -128,12 +188,9 @@ def run_scan(
                         continue
                     to_alert.append((pending, _listing_to_dto(pending.listing)))
 
-                if to_alert:
-                    alert_dtos = [dto for _, dto in to_alert]
-                    sent, _ = sender.send_listings(alert_dtos, f.name)
-                    total_sent += sent
-                    for match, _ in to_alert[:sent]:
-                        match_repo.mark_notified(match.id)
+                total_sent += _deliver(
+                    db, sender, f, to_alert, match_repo, carousel_repo
+                )
 
             except Exception as exc:
                 logger.error("Scan error for filter %d (%s): %s", f.id, f.name, exc)

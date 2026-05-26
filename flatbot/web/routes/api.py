@@ -12,7 +12,7 @@ from flatbot.integrations.openproperties.client import (
     OpenPropertiesClient,
 )
 from flatbot.models import Filter
-from flatbot.repos import FilterRepo, MatchRepo, ScanRunRepo
+from flatbot.repos import AlertCarouselRepo, FilterRepo, MatchRepo, ScanRunRepo
 from flatbot.scanner import run_scan
 from flatbot.schemas import FilterRead, ListingRead, ScanRunRead
 from flatbot.web.deps import get_alert_sender, get_scan_client
@@ -69,6 +69,26 @@ def api_run_scan(
 ) -> ScanRunRead:
     run = run_scan(db, client, sender)
     return ScanRunRead.model_validate(run)
+
+
+@router.get("/carousels/{carousel_id}/listings/{idx}")
+def api_carousel_listing(
+    carousel_id: int, idx: int, db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    repo = AlertCarouselRepo(db)
+    carousel = repo.get(carousel_id)
+    if carousel is None:
+        raise HTTPException(status_code=404, detail="Carousel not found")
+    match = repo.get_match_at(carousel_id, idx)
+    if match is None:
+        raise HTTPException(status_code=404, detail="Index out of range")
+    return {
+        "carousel_id": carousel.id,
+        "filter_name": carousel.filter.name,
+        "idx": idx,
+        "total": len(carousel.match_ids),
+        "listing": ListingRead.model_validate(match.listing).model_dump(mode="json"),
+    }
 
 
 @router.get("/matches/recent")

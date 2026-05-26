@@ -121,3 +121,17 @@ class Setting(Base):
     key: Mapped[str] = mapped_column(String(100), primary_key=True)
     value: Mapped[str] = mapped_column(Text)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+
+
+class AlertCarousel(Base):
+    __tablename__ = "alert_carousels"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    chat_id: Mapped[str] = mapped_column(String(50))
+    message_id: Mapped[int] = mapped_column(Integer)
+    filter_id: Mapped[int] = mapped_column(ForeignKey("filters.id", ondelete="CASCADE"))
+    # Ordered list of Match IDs the carousel paginates through.
+    match_ids: Mapped[list[int]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    filter: Mapped[Filter] = relationship()

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from flatbot.alerts import AlertSender
 from flatbot.db import get_db
 from flatbot.integrations.openproperties.dto import ListingDTO
-from flatbot.models import Filter, Listing, Match
+from flatbot.models import AlertCarousel, Filter, Listing, Match
 from flatbot.web.app import app
 from flatbot.web.deps import get_alert_sender, get_scan_client
 
@@ -149,3 +149,43 @@ class TestApiRecentMatches:
 
         data = client.get("/api/matches/recent?limit=3").json()
         assert len(data) == 3
+
+
+class TestApiCarouselListing:
+    def _setup_carousel(self, db: Session) -> tuple[AlertCarousel, list[Match]]:
+        f = _add_filter(db, "carousel filter")
+        listings = [_add_listing(db, property_id=f"cp{i}") for i in range(3)]
+        matches = []
+        for lst in listings:
+            m = Match(filter_id=f.id, listing_id=lst.id)
+            db.add(m)
+            db.commit()
+            db.refresh(m)
+            matches.append(m)
+        c = AlertCarousel(
+            chat_id="123",
+            message_id=99,
+            filter_id=f.id,
+            match_ids=[m.id for m in matches],
+        )
+        db.add(c)
+        db.commit()
+        db.refresh(c)
+        return c, matches
+
+    def test_returns_listing_at_index(self, client: TestClient, db: Session) -> None:
+        c, matches = self._setup_carousel(db)
+        resp = client.get(f"/api/carousels/{c.id}/listings/1")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["idx"] == 1
+        assert body["total"] == 3
+        assert body["filter_name"] == "carousel filter"
+        assert body["listing"]["property_id"] == "cp1"
+
+    def test_404_for_missing_carousel(self, client: TestClient) -> None:
+        assert client.get("/api/carousels/9999/listings/0").status_code == 404
+
+    def test_404_for_out_of_range_index(self, client: TestClient, db: Session) -> None:
+        c, _ = self._setup_carousel(db)
+        assert client.get(f"/api/carousels/{c.id}/listings/10").status_code == 404

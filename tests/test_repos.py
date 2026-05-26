@@ -3,7 +3,13 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from flatbot.models import Listing
-from flatbot.repos import FilterRepo, ListingRepo, MatchRepo, ScanRunRepo
+from flatbot.repos import (
+    AlertCarouselRepo,
+    FilterRepo,
+    ListingRepo,
+    MatchRepo,
+    ScanRunRepo,
+)
 from flatbot.schemas import FilterCreate, FilterUpdate
 from flatbot.services.settings import SettingsService
 
@@ -139,6 +145,39 @@ class TestScanRunRepo:
         run2 = repo.start()
         latest = repo.latest()
         assert latest is not None and latest.id == run2.id
+
+
+class TestAlertCarouselRepo:
+    def test_create_and_get_match_at(self, db: Session) -> None:
+        f = FilterRepo(db).create(_filter())
+        l1, _ = ListingRepo(db).upsert(_listing("p1"))
+        l2, _ = ListingRepo(db).upsert(_listing("p2"))
+        m1 = MatchRepo(db).create(f.id, l1.id)
+        m2 = MatchRepo(db).create(f.id, l2.id)
+        assert m1 is not None and m2 is not None
+
+        repo = AlertCarouselRepo(db)
+        c = repo.create(
+            chat_id="123", message_id=42, filter_id=f.id, match_ids=[m1.id, m2.id]
+        )
+        assert c.id is not None
+        assert repo.get(c.id) == c
+        assert repo.get_match_at(c.id, 0) == m1
+        assert repo.get_match_at(c.id, 1) == m2
+
+    def test_get_match_at_out_of_range(self, db: Session) -> None:
+        f = FilterRepo(db).create(_filter())
+        listing, _ = ListingRepo(db).upsert(_listing())
+        m = MatchRepo(db).create(f.id, listing.id)
+        assert m is not None
+
+        repo = AlertCarouselRepo(db)
+        c = repo.create(chat_id="c", message_id=1, filter_id=f.id, match_ids=[m.id])
+        assert repo.get_match_at(c.id, -1) is None
+        assert repo.get_match_at(c.id, 5) is None
+
+    def test_get_missing_returns_none(self, db: Session) -> None:
+        assert AlertCarouselRepo(db).get(9999) is None
 
 
 class TestSettingsService:

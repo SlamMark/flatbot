@@ -1,11 +1,12 @@
 """End-to-end tests for the scan orchestration (F5)."""
 from datetime import datetime, timezone
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from flatbot.alerts import AlertSender
 from flatbot.integrations.openproperties.dto import ListingDTO
-from flatbot.models import Filter
+from flatbot.models import AlertCarousel, Filter
 from flatbot.scanner import run_scan
 
 
@@ -62,10 +63,18 @@ class _FakeSender(AlertSender):
     def __init__(self) -> None:
         super().__init__(bot_token="fake", chat_id="fake")
         self.sent: list[str] = []
+        self.carousels: list[tuple[str, dict]] = []
+        self._next_msg_id = 1000
 
     def send(self, text: str) -> bool:
         self.sent.append(text)
         return True
+
+    def send_with_keyboard(self, text: str, reply_markup: dict) -> int | None:
+        self.carousels.append((text, reply_markup))
+        msg_id = self._next_msg_id
+        self._next_msg_id += 1
+        return msg_id
 
 
 def _add_filter(db: Session, **overrides: object) -> Filter:
@@ -197,3 +206,53 @@ class TestRunScan:
 
         assert run.alerts_sent == 1
         assert len(good.sent) == 1
+
+    def test_multiple_matches_for_one_filter_create_carousel(self, db: Session) -> None:
+        """≥2 matches for a filter → one carousel message, AlertCarousel row persisted."""
+        f = _add_filter(db)
+        sender = _FakeSender()
+        run = run_scan(
+            db,
+            _FakeClient([_dto(property_id=f"p{i}") for i in range(3)]),
+            sender,
+        )
+
+        assert run.matches_found == 3
+        assert run.alerts_sent == 3
+        assert sender.sent == []           # carousel path, no plain sends
+        assert len(sender.carousels) == 1  # exactly one carousel message
+
+        carousels = list(db.execute(select(AlertCarousel)).scalars())
+        assert len(carousels) == 1
+        c = carousels[0]
+        assert c.filter_id == f.id
+        assert len(c.match_ids) == 3
+        assert c.message_id > 0  # updated from placeholder after send
+
+    def test_carousel_send_failure_leaves_matches_pending(self, db: Session) -> None:
+        """If send_with_keyboard fails, no AlertCarousel row persists and matches stay pending."""
+        _add_filter(db)
+
+        class _FailingCarouselSender(_FakeSender):
+            def send_with_keyboard(self, text: str, reply_markup: dict) -> int | None:
+                return None
+
+        failing = _FailingCarouselSender()
+        run = run_scan(
+            db,
+            _FakeClient([_dto(property_id=f"p{i}") for i in range(2)]),
+            failing,
+        )
+
+        assert run.alerts_sent == 0
+        assert db.execute(select(AlertCarousel)).first() is None
+
+        # Retry next scan with a good sender — both pending matches should fire.
+        good = _FakeSender()
+        run2 = run_scan(
+            db,
+            _FakeClient([_dto(property_id=f"p{i}") for i in range(2)]),
+            good,
+        )
+        assert run2.alerts_sent == 2
+        assert len(good.carousels) == 1

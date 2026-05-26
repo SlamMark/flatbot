@@ -2,9 +2,11 @@
 import logging
 
 import httpx
-from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
+from flatbot.alerts import NAV_NOOP, format_carousel_card_from_dict
 from flatbot.bot.api_client import BotApiClient
 from flatbot.config import settings
 
@@ -173,3 +175,72 @@ async def handle_buscar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         )
         lines.append(f"\n{summary}\n{lst['address']}\n{lst['url']}")
     await update.message.reply_html("\n".join(lines))
+
+
+def _build_nav_markup(carousel_id: int, idx: int, total: int) -> InlineKeyboardMarkup:
+    prev_data = f"n:{carousel_id}:{idx - 1}" if idx > 0 else NAV_NOOP
+    next_data = f"n:{carousel_id}:{idx + 1}" if idx < total - 1 else NAV_NOOP
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    "◀️ Anterior" if idx > 0 else "—", callback_data=prev_data
+                ),
+                InlineKeyboardButton(f"{idx + 1}/{total}", callback_data=NAV_NOOP),
+                InlineKeyboardButton(
+                    "Siguiente ▶️" if idx < total - 1 else "—", callback_data=next_data
+                ),
+            ]
+        ]
+    )
+
+
+async def handle_carousel_nav(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle inline-keyboard taps on alert carousels: edit the message in place."""
+    query = update.callback_query
+    if query is None or query.data is None:
+        return
+
+    data = query.data
+    if data == NAV_NOOP:
+        await query.answer()
+        return
+
+    try:
+        prefix, cid_str, idx_str = data.split(":")
+        if prefix != "n":
+            raise ValueError("unknown callback prefix")
+        carousel_id = int(cid_str)
+        idx = int(idx_str)
+    except ValueError:
+        logger.warning("Malformed carousel callback_data: %r", data)
+        await query.answer()
+        return
+
+    try:
+        payload = await _client().get_carousel_listing(carousel_id, idx)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            await query.answer("Carrusel expirado o índice inválido.", show_alert=False)
+        else:
+            await query.answer("Error obteniendo el listado.", show_alert=False)
+        return
+    except httpx.HTTPError as exc:
+        logger.warning("API error in carousel nav: %s", exc)
+        await query.answer("Sin conexión con el servicio.", show_alert=False)
+        return
+
+    text = format_carousel_card_from_dict(
+        payload["listing"], payload["idx"], payload["total"], payload["filter_name"]
+    )
+    markup = _build_nav_markup(carousel_id, payload["idx"], payload["total"])
+
+    try:
+        await query.edit_message_text(
+            text=text, reply_markup=markup, disable_web_page_preview=False
+        )
+    except BadRequest as exc:
+        # "Message is not modified" can happen on rapid clicks — silently ack.
+        if "not modified" not in str(exc).lower():
+            logger.warning("Failed to edit carousel message: %s", exc)
+    await query.answer()

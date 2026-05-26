@@ -1,7 +1,14 @@
-"""Unit tests for F4 — Telegram alert formatting and sending."""
+"""Unit tests for F4 — Telegram alert formatting and helpers."""
 from datetime import datetime, timezone
 
-from flatbot.alerts import AlertSender, format_batch, format_card
+from flatbot.alerts import (
+    NAV_NOOP,
+    build_carousel_keyboard,
+    format_card,
+    format_card_from_dict,
+    format_carousel_card,
+    format_carousel_card_from_dict,
+)
 from flatbot.integrations.openproperties.dto import ListingDTO
 
 
@@ -46,9 +53,19 @@ def _listing(**overrides) -> ListingDTO:
     return ListingDTO(**defaults)
 
 
-# ---------------------------------------------------------------------------
-# format_card
-# ---------------------------------------------------------------------------
+def _dict_listing(**overrides) -> dict:
+    payload = {
+        "llm_summary": None,
+        "property_type": "flat",
+        "bedrooms": 3,
+        "square_meters": 80,
+        "kind": "rent",
+        "price": 1200,
+        "address": "Calle Test, 1, Gràcia",
+        "url": "https://idealista.com/inmueble/123/",
+    }
+    payload.update(overrides)
+    return payload
 
 
 class TestFormatCard:
@@ -64,7 +81,7 @@ class TestFormatCard:
         assert "Flat" in card or "flat" in card.lower()
         assert "3 hab" in card
         assert "80m²" in card
-        assert "1" in card and "200" in card  # price present in some format
+        assert "1" in card and "200" in card
         assert lst.url in card
 
     def test_rent_price_label(self) -> None:
@@ -82,86 +99,47 @@ class TestFormatCard:
             assert lst.url in format_card(lst)
 
 
-class TestFormatBatch:
-    def test_includes_header_with_count_and_name(self) -> None:
-        listings = [_listing(property_id=f"p{i}") for i in range(3)]
-        msg = format_batch(listings, "Mi filtro")
-        assert "3" in msg
-        assert "Mi filtro" in msg
+class TestFormatCardFromDict:
+    def test_matches_dto_output_for_same_fields(self) -> None:
+        dto_card = format_card(_listing())
+        dict_card = format_card_from_dict(_dict_listing())
+        assert dto_card == dict_card
 
-    def test_contains_all_urls(self) -> None:
-        listings = [_listing(property_id=f"p{i}", url=f"https://example.com/{i}") for i in range(2)]
-        msg = format_batch(listings, "filtro")
-        for lst in listings:
-            assert lst.url in msg
+    def test_llm_summary_preferred(self) -> None:
+        card = format_card_from_dict(_dict_listing(llm_summary="Resumen"))
+        assert "Resumen" in card
 
 
-# ---------------------------------------------------------------------------
-# AlertSender with fake HTTP (no real Telegram calls)
-# ---------------------------------------------------------------------------
+class TestFormatCarouselCard:
+    def test_header_includes_filter_name_and_position(self) -> None:
+        text = format_carousel_card(_listing(), idx=2, total=10, filter_name="Pis")
+        assert "Pis" in text
+        assert "3/10" in text
+
+    def test_dict_variant_matches_layout(self) -> None:
+        text = format_carousel_card_from_dict(
+            _dict_listing(), idx=0, total=4, filter_name="X"
+        )
+        assert "1/4" in text
+        assert "X" in text
 
 
-class _FakeSender(AlertSender):
-    """AlertSender subclass that records messages instead of calling Telegram."""
+class TestBuildCarouselKeyboard:
+    def test_first_page_disables_prev(self) -> None:
+        kb = build_carousel_keyboard(carousel_id=5, idx=0, total=3)
+        buttons = kb["inline_keyboard"][0]
+        assert buttons[0]["callback_data"] == NAV_NOOP  # prev disabled
+        assert buttons[2]["callback_data"] == "n:5:1"   # next active
+        assert buttons[1]["text"] == "1/3"
 
-    def __init__(self, max_per_scan: int = 10, fail: bool = False) -> None:
-        super().__init__(bot_token="fake", chat_id="fake", max_per_scan=max_per_scan)
-        self.sent_texts: list[str] = []
-        self._fail = fail
+    def test_middle_page_both_active(self) -> None:
+        kb = build_carousel_keyboard(carousel_id=7, idx=2, total=5)
+        buttons = kb["inline_keyboard"][0]
+        assert buttons[0]["callback_data"] == "n:7:1"
+        assert buttons[2]["callback_data"] == "n:7:3"
 
-    def send(self, text: str) -> bool:
-        if self._fail:
-            return False
-        self.sent_texts.append(text)
-        return True
-
-
-class TestAlertSender:
-    def test_send_single_listing_sends_one_message(self) -> None:
-        sender = _FakeSender()
-        sent, skipped = sender.send_listings([_listing()], "filtro")
-        assert sent == 1
-        assert skipped == 0
-        assert len(sender.sent_texts) == 1
-
-    def test_few_listings_sent_individually(self) -> None:
-        listings = [_listing(property_id=f"p{i}") for i in range(3)]
-        sender = _FakeSender()
-        sent, _ = sender.send_listings(listings, "filtro")
-        assert sent == 3
-        assert len(sender.sent_texts) == 3
-
-    def test_many_listings_grouped_into_one_message(self) -> None:
-        listings = [_listing(property_id=f"p{i}") for i in range(5)]
-        sender = _FakeSender()
-        sent, _ = sender.send_listings(listings, "filtro")
-        assert sent == 5
-        # grouped into a single batch message
-        assert len(sender.sent_texts) == 1
-
-    def test_rate_limit_caps_at_max_per_scan(self) -> None:
-        listings = [_listing(property_id=f"p{i}") for i in range(15)]
-        sender = _FakeSender(max_per_scan=5)
-        sent, skipped = sender.send_listings(listings, "filtro")
-        assert sent == 5
-        assert skipped == 10
-        # one batch message + one "omitidos" notice
-        assert len(sender.sent_texts) == 2
-
-    def test_skipped_notice_sent_when_capped(self) -> None:
-        listings = [_listing(property_id=f"p{i}") for i in range(8)]
-        sender = _FakeSender(max_per_scan=3)
-        sender.send_listings(listings, "filtro")
-        assert any("omitidos" in t for t in sender.sent_texts)
-
-    def test_empty_listings_returns_zero(self) -> None:
-        sender = _FakeSender()
-        sent, skipped = sender.send_listings([], "filtro")
-        assert sent == 0
-        assert skipped == 0
-        assert sender.sent_texts == []
-
-    def test_send_failure_returns_false(self) -> None:
-        sender = _FakeSender(fail=True)
-        sent, _ = sender.send_listings([_listing()], "filtro")
-        assert sent == 0
+    def test_last_page_disables_next(self) -> None:
+        kb = build_carousel_keyboard(carousel_id=9, idx=4, total=5)
+        buttons = kb["inline_keyboard"][0]
+        assert buttons[2]["callback_data"] == NAV_NOOP
+        assert buttons[0]["callback_data"] == "n:9:3"
