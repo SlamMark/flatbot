@@ -53,7 +53,8 @@ class AlertSender:
     def send(self, text: str) -> bool:
         """Send a single message. Returns True on success."""
         url = f"{_TELEGRAM_API}/bot{self.bot_token}/sendMessage"
-        payload = {"chat_id": self.chat_id, "text": text, "parse_mode": "HTML"}
+        # No parse_mode: alert cards are plain text. URLs still auto-link.
+        payload = {"chat_id": self.chat_id, "text": text, "disable_web_page_preview": False}
         delay = 1.0
         with httpx.Client(timeout=10.0) as client:
             for attempt in range(_MAX_RETRIES):
@@ -63,7 +64,13 @@ class AlertSender:
                         time.sleep(delay)
                         delay *= 2
                         continue
-                    resp.raise_for_status()
+                    if resp.status_code >= 400:
+                        logger.warning(
+                            "Telegram send failed (HTTP %d): %s",
+                            resp.status_code,
+                            resp.text[:500],
+                        )
+                        resp.raise_for_status()
                     return True
                 except httpx.HTTPError as exc:
                     logger.warning("Telegram send error (attempt %d): %s", attempt + 1, exc)
