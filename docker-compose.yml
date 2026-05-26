@@ -1,12 +1,13 @@
 services:
   web:
     build: .
-    command: uvicorn flatbot.web.app:app --host 0.0.0.0 --port 8000 --workers 1
+    command: >
+      sh -c "alembic upgrade head && uvicorn flatbot.web.app:app --host 0.0.0.0 --port 8000 --workers 1"
     volumes:
       - flatbot_data:/data
     env_file: .env
     ports:
-      - "127.0.0.1:8000:8000"   # bind localhost only — put nginx in front for HTTPS
+      - "8000:8000"
     networks:
       - flatbot_net
     restart: unless-stopped

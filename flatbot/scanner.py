@@ -52,6 +52,39 @@ def _dto_to_listing(dto: ListingDTO) -> Listing:
     )
 
 
+def _listing_to_dto(listing: Listing) -> ListingDTO:
+    return ListingDTO(
+        id=listing.property_id,
+        property_id=listing.property_id,
+        source=listing.source,
+        external_id=listing.external_id,
+        url=listing.url,
+        kind=listing.kind,
+        price=listing.price,
+        price_per_sqm=listing.price_per_sqm,
+        property_type=listing.property_type,
+        condition=listing.condition,
+        bedrooms=listing.bedrooms,
+        bathrooms=listing.bathrooms,
+        square_meters=listing.square_meters,
+        floor_number=listing.floor_number,
+        address=listing.address,
+        lat=listing.lat,
+        lng=listing.lng,
+        amenities=listing.amenities or [],
+        is_agency=listing.is_agency,
+        publisher_name=listing.publisher_name,
+        photos_amount=listing.photos_amount,
+        flag_temporal=listing.flag_temporal,
+        flag_ocupada=listing.flag_ocupada,
+        flag_alquiler_regulado=listing.flag_alquiler_regulado,
+        flag_bare_ownership=listing.flag_bare_ownership,
+        llm_summary=listing.llm_summary,
+        published_at=listing.published_at,
+        last_scraped_at=listing.last_scraped_at,
+    )
+
+
 def run_scan(
     db: Session,
     client: ListingClient,
@@ -72,24 +105,34 @@ def run_scan(
                 dtos = client.fetch_recent(f, hours=settings.scan_lookback_hours)
                 total_fetched += len(dtos)
 
-                new_matches: list[tuple[Match, ListingDTO]] = []
+                to_alert: list[tuple[Match, ListingDTO]] = []
                 for dto in dtos:
                     db_listing, created = listing_repo.upsert(_dto_to_listing(dto))
-                    if not created:
-                        continue
-                    total_new += 1
+                    if created:
+                        total_new += 1
                     if not evaluate(dto, f).matched:
                         continue
+                    # Evaluate every fetched listing against the filter. MatchRepo.create
+                    # is idempotent on (filter_id, listing_id), so previously-matched
+                    # listings won't re-fire — but a freshly added/edited filter will
+                    # now match listings already in the DB.
                     match = match_repo.create(f.id, db_listing.id)
                     if match is not None:
                         total_matches += 1
-                        new_matches.append((match, dto))
+                        to_alert.append((match, dto))
 
-                if new_matches:
-                    alert_dtos = [dto for _, dto in new_matches]
+                # Retry matches whose previous send failed (notified_at IS NULL).
+                queued_ids = {m.id for m, _ in to_alert}
+                for pending in match_repo.list_pending_for_filter(f.id):
+                    if pending.id in queued_ids:
+                        continue
+                    to_alert.append((pending, _listing_to_dto(pending.listing)))
+
+                if to_alert:
+                    alert_dtos = [dto for _, dto in to_alert]
                     sent, _ = sender.send_listings(alert_dtos, f.name)
                     total_sent += sent
-                    for match, _ in new_matches[:sent]:
+                    for match, _ in to_alert[:sent]:
                         match_repo.mark_notified(match.id)
 
             except Exception as exc:

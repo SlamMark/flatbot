@@ -114,6 +114,16 @@ class MatchRepo:
             self.db.execute(select(Match).where(Match.notified_at.is_(None))).scalars()
         )
 
+    def list_pending_for_filter(self, filter_id: int) -> list[Match]:
+        return list(
+            self.db.execute(
+                select(Match).where(
+                    Match.filter_id == filter_id,
+                    Match.notified_at.is_(None),
+                )
+            ).scalars()
+        )
+
     def list_recent(self, limit: int = 10) -> list[Match]:
         return list(
             self.db.execute(

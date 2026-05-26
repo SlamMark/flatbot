@@ -155,6 +155,45 @@ class TestRunScan:
         )
 
         assert run.listings_fetched == 4  # 2 dtos × 2 filters
-        assert run.new_listings == 2  # deduped: only new on first filter encounter
-        assert run.matches_found == 2  # only matched by the filter that first fetched them
-        assert run.alerts_sent > 0
+        assert run.new_listings == 2  # deduped: 2 unique property_ids
+        assert run.matches_found == 4  # both filters match both listings
+        assert run.alerts_sent == 4
+
+    def test_existing_listing_matched_by_new_filter(self, db: Session) -> None:
+        """A filter added after a listing was first seen must still alert on it."""
+        f1 = _add_filter(db, name="f1")
+        client = _FakeClient([_dto(property_id="p-old")])
+
+        # First scan with f1 only — listing gets ingested + alerted by f1
+        run_scan(db, client, _FakeSender())
+        f1.is_active = False
+        db.commit()
+
+        # New filter added later — listing already exists in DB (created=False)
+        _add_filter(db, name="f2")
+        sender = _FakeSender()
+        run = run_scan(db, client, sender)
+
+        assert run.new_listings == 0  # listing already known
+        assert run.matches_found == 1  # f2 evaluates and matches it anyway
+        assert run.alerts_sent == 1
+        assert len(sender.sent) == 1
+
+    def test_pending_match_retried_when_previous_send_failed(self, db: Session) -> None:
+        """If a previous send failed (notified_at is NULL), retry on the next scan."""
+        _add_filter(db)
+
+        class _FailingSender(_FakeSender):
+            def send(self, text: str) -> bool:
+                return False  # simulate Telegram outage
+
+        failing = _FailingSender()
+        run_scan(db, _FakeClient([_dto(property_id="p-retry")]), failing)
+        assert failing.sent == []  # nothing actually delivered
+
+        # Second scan: API still returns the same listing. Sender recovered.
+        good = _FakeSender()
+        run = run_scan(db, _FakeClient([_dto(property_id="p-retry")]), good)
+
+        assert run.alerts_sent == 1
+        assert len(good.sent) == 1
